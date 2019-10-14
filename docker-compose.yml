@@ -1,0 +1,50 @@
+version: "3.7"
+
+services:
+  dll-els:
+    build: ./els
+    container_name: dll-els
+    hostname: dll-els
+    environment:
+       - cluster.name=els-single
+       - node.name=es-single-node
+       - http.port=9200
+       - transport.tcp.port=9300
+       - discovery.type=single-node
+       - bootstrap.memory_lock=true
+       - ES_JAVA_OPTS=-Xms256m -Xmx256m
+    ulimits:
+      memlock:
+          soft: -1
+          hard: -1
+      nofile:
+          soft: 65536
+          hard: 65536
+    volumes:
+       - ./els/data:/usr/share/elasticsearch/data:rw
+       - ./els/logs:/usr/share/elasticsearch/logs:rw
+    networks:
+      - els-net
+    ports:
+      - 9200:9200
+      - 9300:9300
+
+  dll-kibana:
+    image: docker.elastic.co/kibana/kibana:7.1.1
+    container_name: dll-kibana
+    hostname: dll-kibana
+    external_links:
+       - dll-els:dll-els
+    ports:
+       - 5601:5601
+    environment:
+      # elasticSearch是容器名称, 这里, 集群要保证主节点对应的这个
+       - ELASTICSEARCH_HOSTS=http://dll-els:9200 # connect the es-balance node
+       - I18N_LOCALE=zh-CN
+    networks:
+       - els-net
+      
+networks: # 创建网络
+  els-net:
+    name:
+       els-net
